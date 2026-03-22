@@ -84,6 +84,35 @@ streamlit run app.py
 | 通义千问 | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
 | Ollama (本地) | `http://localhost:11434/v1` |
 
+## 服务器部署（Alibaba Cloud Linux 3 / CentOS 8）
+
+```bash
+# 上传 deploy.sh 到服务器后执行
+chmod +x deploy.sh
+
+# 首次部署（自动安装依赖、创建服务、启动）
+sudo ./deploy.sh
+
+# 部署完成后编辑 API 配置
+sudo vi /opt/smart-table-analyst/.env
+
+# 重启服务使配置生效
+sudo ./deploy.sh restart
+```
+
+常用命令：
+
+| 命令 | 说明 |
+|------|------|
+| `sudo ./deploy.sh` | 首次完整部署 |
+| `sudo ./deploy.sh update` | 拉取最新代码并重启 |
+| `sudo ./deploy.sh restart` | 重启服务 |
+| `sudo ./deploy.sh stop` | 停止服务 |
+| `sudo ./deploy.sh status` | 查看服务状态 |
+| `sudo ./deploy.sh logs` | 实时查看日志 |
+
+> 部署后记得在阿里云安全组中放行 TCP 8501 端口
+
 ## 技术栈
 
 - **前端**: Streamlit

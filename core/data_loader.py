@@ -178,6 +178,23 @@ def _format_val(val) -> str:
     return str(val)
 
 
+def df_to_html(df: pd.DataFrame) -> str:
+    """将普通 DataFrame 转为 HTML 表格字符串（不带合并单元格）"""
+    parts = ['<table><thead><tr>']
+    for col in df.columns:
+        parts.append(f'<th>{_html_escape(str(col))}</th>')
+    parts.append('</tr></thead><tbody>')
+    for ri in range(len(df)):
+        parts.append('<tr>')
+        for ci in range(len(df.columns)):
+            val = df.iat[ri, ci]
+            text = _html_escape(_format_val(val))
+            parts.append(f'<td>{text}</td>')
+        parts.append('</tr>')
+    parts.append('</tbody></table>')
+    return ''.join(parts)
+
+
 def get_data_summary(df: pd.DataFrame) -> str:
     lines = [
         f"行数: {len(df)}, 列数: {len(df.columns)}",

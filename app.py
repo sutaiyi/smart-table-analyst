@@ -6,7 +6,7 @@ import streamlit.components.v1 as components
 from config import DEFAULT_BASE_URL, DEFAULT_API_KEY, DEFAULT_MODEL
 from core.config_store import load_config, save_config
 from core.llm_client import LLMClient
-from core.data_loader import load_table, get_data_summary, build_preview_html
+from core.data_loader import load_table, get_data_summary, build_preview_html, df_to_html
 from core.prompt_builder import build_refine_messages, build_analyze_messages, build_revise_messages
 from core.table_analyzer import extract_code, execute_analysis
 from core.history_store import save_history, load_history, delete_history, clear_history, update_history
@@ -257,8 +257,8 @@ if uploaded_file:
             if merges:
                 # 有合并单元格，用 HTML 渲染保留合并效果
                 preview_html = build_preview_html(df, merges)
-                full_html = _build_styled_table_html(preview_html, "数据预览")
-                components.html(full_html, height=500, scrolling=False)
+                full_html = _build_styled_table_html(preview_html, st.session_state.file_name or "数据预览")
+                components.html(full_html, height=560, scrolling=False)
             else:
                 st.dataframe(df, height=400, use_container_width=True)
     except Exception as e:
@@ -418,18 +418,16 @@ if st.session_state.df is not None:
         if result.get("result_tables"):
             for tbl_title, tbl_df in result["result_tables"].items():
                 st.markdown(f"**{tbl_title}**")
+                # 统一用 _build_styled_table_html 渲染，都有搜索/下载/放大工具栏
                 if tbl_title in styled_tables:
                     table_html = styled_tables[tbl_title]
-                    full_html = _build_styled_table_html(table_html, tbl_title)
-                    row_count = table_html.count("<tr")
-                    row_count = table_html.count("<tr")
-                    # 少于12行按内容高度，超过则固定560px（内部滚动）
-                    iframe_height = min(row_count * 40 + 80, 560)
-                    iframe_height = max(iframe_height, 200)
-                    components.html(full_html, height=iframe_height, scrolling=False)
                 else:
-                    st.dataframe(tbl_df, use_container_width=True,
-                                 key=f"tbl_{key_suffix}_{tbl_title}")
+                    table_html = df_to_html(tbl_df)
+                full_html = _build_styled_table_html(table_html, tbl_title)
+                row_count = table_html.count("<tr")
+                iframe_height = min(row_count * 40 + 80, 560)
+                iframe_height = max(iframe_height, 200)
+                components.html(full_html, height=iframe_height, scrolling=False)
 
     def _render_export(result: dict, key_suffix: str = ""):
         """渲染导出按钮"""
