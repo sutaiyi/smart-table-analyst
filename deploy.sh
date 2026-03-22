@@ -16,8 +16,8 @@ set -e
 
 # ============ 配置项（根据需要修改）============
 APP_NAME="smart-table-analyst"
-APP_DIR="/opt/${APP_NAME}"
-REPO_URL="https://github.com/sutaiyi/smart-table-analyst.git"
+# 使用脚本所在目录作为项目目录
+APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 PYTHON_VERSION="3.10"
 PORT=8501
 USER="app"                    # 运行服务的用户
@@ -121,17 +121,10 @@ create_user() {
 }
 
 # ──────────────────────────────────────────────
-# 拉取/更新代码
+# 设置目录权限
 # ──────────────────────────────────────────────
-setup_code() {
-    if [ -d "${APP_DIR}/.git" ]; then
-        log_info "更新代码..."
-        cd "${APP_DIR}"
-        git pull origin master || git pull origin main
-    else
-        log_info "克隆代码..."
-        git clone "${REPO_URL}" "${APP_DIR}"
-    fi
+setup_permissions() {
+    log_info "设置目录权限..."
     chown -R "${USER}:${USER}" "${APP_DIR}"
 }
 
@@ -303,9 +296,10 @@ show_logs() {
 full_deploy() {
     check_root
     log_info "开始完整部署 Smart Table Analyst..."
+    log_info "项目目录: ${APP_DIR}"
     install_system_deps
     create_user
-    setup_code
+    setup_permissions
     setup_venv
     setup_env
     setup_streamlit_config
@@ -316,12 +310,12 @@ full_deploy() {
 }
 
 # ──────────────────────────────────────────────
-# 更新部署
+# 更新部署（重新安装依赖并重启）
 # ──────────────────────────────────────────────
 update_deploy() {
     check_root
     log_info "更新部署..."
-    setup_code
+    setup_permissions
     setup_venv
     start_service
 }
