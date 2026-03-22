@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>{{ css }}</style>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div class="report-container">
+        <div class="report-header">
+            <h1>{{ title }}</h1>
+            <div class="subtitle">生成时间: {{ generated_at }} | Smart Table Analyst</div>
+        </div>
+
+        {% if summary %}
+        <div class="summary-card">
+            <h2>分析摘要</h2>
+            <p>{{ summary }}</p>
+        </div>
+        {% endif %}
+
+        {% for chart_html in chart_htmls %}
+        <div class="chart-section">
+            <div>{{ chart_html }}</div>
+        </div>
+        {% endfor %}
+
+        {% for table_title, table_html in tables %}
+        <div class="table-section">
+            <h3>{{ table_title }}</h3>
+            {{ table_html }}
+        </div>
+        {% endfor %}
+
+        <div class="report-footer">
+            由 Smart Table Analyst 自动生成
+        </div>
+    </div>
+</body>
+</html>
