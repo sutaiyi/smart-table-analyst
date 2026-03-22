@@ -23,14 +23,14 @@
 
         {% for chart_html in chart_htmls %}
         <div class="chart-section">
-            <div>{{ chart_html }}</div>
+            <div>{{ chart_html | safe }}</div>
         </div>
         {% endfor %}
 
         {% for table_title, table_html in tables %}
         <div class="table-section">
             <h3>{{ table_title }}</h3>
-            {{ table_html }}
+            {{ table_html | safe }}
         </div>
         {% endfor %}
 

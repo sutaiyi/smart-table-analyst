@@ -49,6 +49,7 @@ def export_html(
     charts: list[dict],
     summary: str = "",
     title: str = "数据分析报告",
+    styled_tables: dict[str, str] | None = None,
 ) -> str:
     css_path = os.path.join(os.path.dirname(__file__), "..", "assets", "style.css")
     with open(css_path, encoding="utf-8") as f:
@@ -64,14 +65,18 @@ def export_html(
         if html:
             chart_htmls.append(html)
 
+    styled = styled_tables or {}
     tables = []
     for tbl_title, df in result_tables.items():
-        table_html = df.to_html(
-            classes="data-table",
-            index=False,
-            border=0,
-            na_rep="-",
-        )
+        if tbl_title in styled:
+            table_html = styled[tbl_title]
+        else:
+            table_html = df.to_html(
+                classes="data-table",
+                index=False,
+                border=0,
+                na_rep="-",
+            )
         tables.append((tbl_title, table_html))
 
     return template.render(

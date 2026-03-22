@@ -92,28 +92,57 @@ body {
 table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 14px;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 thead th {
-    background: #1a237e;
-    color: white;
-    padding: 12px 16px;
+    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+    color: #fff;
+    padding: 11px 14px;
     text-align: left;
     font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    border: 1px solid #1e3a5f;
+    white-space: nowrap;
 }
 
 tbody td {
-    padding: 10px 16px;
-    border-bottom: 1px solid #e0e0e0;
+    padding: 9px 14px;
+    border: 1px solid #e2e8f0;
+    vertical-align: middle;
+    color: #334155;
 }
 
-tbody tr:nth-child(even) {
-    background: #f8f9ff;
+/* 合并单元格 */
+tbody td[rowspan] {
+    font-weight: 600;
+    color: #1e293b;
+    background: #f8fafc;
+    border-left: 3px solid #2563eb;
+    vertical-align: middle;
 }
 
-tbody tr:hover {
-    background: #e8eaf6;
+/* 数字列右对齐 */
+tbody td.num, thead th.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* 小计/合计行 */
+tbody tr.subtotal td {
+    font-weight: 600;
+    background: #eef2ff;
+    border-top: 2px solid #c7d2fe;
+}
+
+tbody tr.total td {
+    font-weight: 700;
+    background: #e0e7ff;
+    border-top: 2px solid #818cf8;
+    color: #1e293b;
+    font-size: 13.5px;
 }
 
 .report-footer {
@@ -123,4 +152,65 @@ tbody tr:hover {
     padding: 20px 0;
     margin-top: 40px;
     border-top: 1px solid #e0e0e0;
+}
+
+/* ── PDF 打印样式 ── */
+@media print {
+    @page {
+        size: A4 landscape;
+        margin: 15mm;
+    }
+
+    body {
+        font-size: 10px;
+        background: white;
+    }
+
+    .report-container {
+        max-width: 100%;
+        padding: 0;
+    }
+
+    .report-header {
+        padding: 20px;
+        margin-bottom: 15px;
+        border-radius: 0;
+        box-shadow: none;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .report-header h1 {
+        font-size: 20px;
+    }
+
+    .summary-card, .chart-section, .table-section {
+        padding: 15px;
+        margin-bottom: 12px;
+        border-radius: 0;
+        box-shadow: none;
+        page-break-inside: avoid;
+    }
+
+    table {
+        font-size: 9px;
+        word-break: break-all;
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    thead th {
+        padding: 6px 4px;
+        font-size: 9px;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    tbody td {
+        padding: 4px 4px;
+        font-size: 9px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
 }

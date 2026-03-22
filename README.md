@@ -12,17 +12,34 @@
 
 ## 快速开始
 
-### 1. 安装依赖
+### 1. 创建虚拟环境
+
+```bash
+cd /path/to/smart-table-analyst
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 2. 安装依赖
 
 ```bash
 pip install -r requirements.txt
 ```
 
-> PDF 导出需要额外安装 WeasyPrint 系统依赖：
+> **macOS SSL 证书问题**：如果安装时报 `SSL: CERTIFICATE_VERIFY_FAILED`，先运行：
+> ```bash
+> # 方法A：安装 Python 证书（推荐，路径根据你的 Python 版本调整）
+> /Applications/Python\ 3.10/Install\ Certificates.command
+>
+> # 方法B：临时跳过 SSL 验证
+> pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org -r requirements.txt
+> ```
+
+> **PDF 导出**需要额外安装 WeasyPrint 系统依赖：
 > - macOS: `brew install pango`
 > - Ubuntu: `apt-get install libpango-1.0-0 libpangocairo-1.0-0`
 
-### 2. 配置
+### 3. 配置
 
 复制环境变量文件并填入你的 API 配置：
 
@@ -39,9 +56,10 @@ LLM_MODEL=gpt-4o
 
 也可以在 Web 界面侧边栏直接配置，无需 `.env` 文件。
 
-### 3. 启动
+### 4. 启动
 
 ```bash
+source .venv/bin/activate  # 如果尚未激活虚拟环境
 streamlit run app.py
 ```
 
