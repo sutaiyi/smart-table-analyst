@@ -50,36 +50,53 @@ install_system_deps() {
     # 基础工具
     yum install -y git gcc make wget curl
 
-    # Python 3.10+（Alibaba Cloud Linux 3 默认可能是 3.6/3.8）
-    if ! command -v python3.10 &>/dev/null && ! python3 --version 2>&1 | grep -q "3.1[0-9]"; then
-        log_info "安装 Python ${PYTHON_VERSION}..."
-        yum install -y python3-devel python3-pip
-        # 如果系统版本太低，从源码编译
-        if ! python3 --version 2>&1 | grep -qE "3\.(1[0-9]|[2-9][0-9])"; then
-            log_info "系统 Python 版本过低，从源码编译 Python ${PYTHON_VERSION}..."
-            yum install -y openssl-devel bzip2-devel libffi-devel zlib-devel readline-devel sqlite-devel
-            cd /tmp
-            wget -q "https://www.python.org/ftp/python/${PYTHON_VERSION}.17/Python-${PYTHON_VERSION}.17.tgz"
-            tar xzf "Python-${PYTHON_VERSION}.17.tgz"
-            cd "Python-${PYTHON_VERSION}.17"
-            ./configure --enable-optimizations --prefix=/usr/local 2>&1 | tail -1
-            make -j$(nproc) 2>&1 | tail -1
-            make altinstall 2>&1 | tail -1
-            cd /
-            rm -rf /tmp/Python-${PYTHON_VERSION}*
-            log_info "Python ${PYTHON_VERSION} 编译安装完成"
-        fi
-    fi
-
-    # 确定 python 可执行路径
+    # ── 安装 Python 3.10 ──
     if command -v python3.10 &>/dev/null; then
         PYTHON_BIN="python3.10"
-    elif command -v python3 &>/dev/null; then
-        PYTHON_BIN="python3"
+        log_info "Python 3.10 已存在，跳过安装"
     else
-        log_error "Python3 安装失败"
-        exit 1
+        log_info "安装 Python 3.10（源码编译，约5-10分钟）..."
+        yum install -y gcc openssl-devel bzip2-devel libffi-devel zlib-devel \
+            readline-devel sqlite-devel xz-devel tk-devel gdbm-devel
+
+        PYTHON_FULL="3.10.16"
+        cd /tmp
+        rm -rf Python-${PYTHON_FULL}*
+
+        log_info "下载 Python ${PYTHON_FULL}..."
+        wget "https://www.python.org/ftp/python/${PYTHON_FULL}/Python-${PYTHON_FULL}.tgz"
+        if [ ! -f "Python-${PYTHON_FULL}.tgz" ]; then
+            log_error "Python 源码下载失败，请检查网络"
+            exit 1
+        fi
+
+        tar xzf "Python-${PYTHON_FULL}.tgz"
+        cd "Python-${PYTHON_FULL}"
+
+        log_info "编译中（configure）..."
+        ./configure --enable-optimizations --prefix=/usr/local
+        log_info "编译中（make），请耐心等待..."
+        make -j$(nproc)
+        log_info "安装中（make altinstall）..."
+        make altinstall
+
+        cd /
+        rm -rf /tmp/Python-${PYTHON_FULL}*
+
+        # 验证安装
+        if command -v python3.10 &>/dev/null; then
+            log_info "Python 3.10 安装成功: $(python3.10 --version)"
+        elif [ -f /usr/local/bin/python3.10 ]; then
+            ln -sf /usr/local/bin/python3.10 /usr/bin/python3.10
+            ln -sf /usr/local/bin/pip3.10 /usr/bin/pip3.10
+            log_info "Python 3.10 安装成功: $(python3.10 --version)"
+        else
+            log_error "Python 3.10 编译安装失败"
+            exit 1
+        fi
+        PYTHON_BIN="python3.10"
     fi
+
     log_info "使用 Python: $(${PYTHON_BIN} --version)"
 
     # WeasyPrint 系统依赖（PDF 导出）
