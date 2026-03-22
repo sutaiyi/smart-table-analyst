@@ -414,15 +414,11 @@ if st.session_state.df is not None:
                     st.plotly_chart(fig, use_container_width=True,
                                     key=f"chart_{key_suffix}_{idx}")
 
-        styled_tables = result.get("styled_tables", {})
         if result.get("result_tables"):
             for tbl_title, tbl_df in result["result_tables"].items():
                 st.markdown(f"**{tbl_title}**")
-                # 统一用 _build_styled_table_html 渲染，都有搜索/下载/放大工具栏
-                if tbl_title in styled_tables:
-                    table_html = styled_tables[tbl_title]
-                else:
-                    table_html = df_to_html(tbl_df)
+                # 自动检测分组列并合并连续相同值，生成带 rowspan 的 HTML
+                table_html = df_to_html(tbl_df, auto_merge=True)
                 full_html = _build_styled_table_html(table_html, tbl_title)
                 row_count = table_html.count("<tr")
                 iframe_height = min(row_count * 40 + 80, 560)
@@ -435,11 +431,16 @@ if st.session_state.df is not None:
         report_title = st.text_input("报告标题", value="数据分析报告",
                                       key=f"report_title_{key_suffix}")
 
+        # 为导出生成带合并的 HTML 表格
+        auto_styled = {}
+        for tbl_title, tbl_df in result.get("result_tables", {}).items():
+            auto_styled[tbl_title] = df_to_html(tbl_df, auto_merge=True)
+
         with col1:
             try:
                 excel_bytes = export_excel(
                     result["result_tables"], result.get("summary", ""),
-                    styled_tables=result.get("styled_tables"),
+                    styled_tables=auto_styled,
                 )
                 st.download_button(
                     "📥 下载 Excel", data=excel_bytes,
@@ -455,7 +456,7 @@ if st.session_state.df is not None:
                 html_content = export_html(
                     result["result_tables"], result.get("charts", []),
                     result.get("summary", ""), title=report_title,
-                    styled_tables=result.get("styled_tables"),
+                    styled_tables=auto_styled,
                 )
                 st.download_button(
                     "📥 下载 HTML", data=html_content,
@@ -470,7 +471,7 @@ if st.session_state.df is not None:
                 pdf_bytes = export_pdf(
                     result["result_tables"], result.get("charts", []),
                     result.get("summary", ""), title=report_title,
-                    styled_tables=result.get("styled_tables"),
+                    styled_tables=auto_styled,
                 )
                 st.download_button(
                     "📥 下载 PDF", data=pdf_bytes,
