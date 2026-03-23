@@ -28,39 +28,42 @@ def init_browser_store():
     if st.session_state.get("_browser_loaded"):
         return  # 已加载过，跳过
 
-    # 读取 config
-    config_raw = streamlit_js_eval(
-        js_expressions=f"localStorage.getItem('{_CONFIG_KEY}')",
-        key="_load_config",
-    )
-    # 读取 history
-    history_raw = streamlit_js_eval(
-        js_expressions=f"localStorage.getItem('{_HISTORY_KEY}')",
-        key="_load_history",
-    )
+    # 初始化默认值（确保即使 JS 失败也能正常运行）
+    if "browser_config" not in st.session_state:
+        st.session_state["browser_config"] = {}
+    if "browser_history" not in st.session_state:
+        st.session_state["browser_history"] = []
 
-    # 第一次渲染两个都是 None，等下一轮 rerun
-    if config_raw is None and history_raw is None:
+    # 尝试从 localStorage 读取
+    try:
+        config_raw = streamlit_js_eval(
+            js_expressions=f"localStorage.getItem('{_CONFIG_KEY}')",
+            key="_load_config",
+        )
+        history_raw = streamlit_js_eval(
+            js_expressions=f"localStorage.getItem('{_HISTORY_KEY}')",
+            key="_load_history",
+        )
+    except Exception:
+        # JS eval 失败，用默认值继续
+        st.session_state["_browser_loaded"] = True
         return
 
-    # 解析 config
-    if config_raw and isinstance(config_raw, str):
+    # 第一次渲染返回 None（JS 尚未执行），标记为已加载，用默认值先跑
+    # 如果后续 rerun 拿到了真实值会自动更新
+    if config_raw is not None and isinstance(config_raw, str):
         try:
             st.session_state["browser_config"] = json.loads(config_raw)
         except json.JSONDecodeError:
-            st.session_state["browser_config"] = {}
-    elif "browser_config" not in st.session_state:
-        st.session_state["browser_config"] = {}
+            pass
 
-    # 解析 history
-    if history_raw and isinstance(history_raw, str):
+    if history_raw is not None and isinstance(history_raw, str):
         try:
             st.session_state["browser_history"] = json.loads(history_raw)
         except json.JSONDecodeError:
-            st.session_state["browser_history"] = []
-    elif "browser_history" not in st.session_state:
-        st.session_state["browser_history"] = []
+            pass
 
+    # 无论是否拿到值，都标记为已加载，不阻塞页面
     st.session_state["_browser_loaded"] = True
 
 

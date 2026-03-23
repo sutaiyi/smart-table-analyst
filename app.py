@@ -233,9 +233,6 @@ document.addEventListener('fullscreenchange', () => {{
 
 # ── 从浏览器 localStorage 加载配置和历史 ──
 init_browser_store()
-if not is_loaded():
-    st.info("正在加载配置...")
-    st.stop()
 
 # ── 侧边栏：模型配置 ──
 _saved_config = get_config()
