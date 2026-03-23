@@ -5,9 +5,10 @@ set -e
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "${APP_DIR}"
 
-
+echo "📦 更新依赖..."
 source .venv/bin/activate
 pip install -r requirements.txt
+
 
 
 echo "🔄 重启服务..."
