@@ -4,12 +4,14 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from config import DEFAULT_BASE_URL, DEFAULT_API_KEY, DEFAULT_MODEL
-from core.config_store import load_config, save_config
 from core.llm_client import LLMClient
 from core.data_loader import load_table, get_data_summary, build_preview_html, df_to_html
 from core.prompt_builder import build_refine_messages, build_analyze_messages, build_revise_messages
 from core.table_analyzer import extract_code, execute_analysis
-from core.history_store import save_history, load_history, delete_history, clear_history, update_history
+from core.browser_store import (
+    init_browser_store, is_loaded, get_config, save_config,
+    get_history, save_history, delete_history, clear_history, update_history,
+)
 from export.excel_exporter import export_excel
 from export.html_exporter import export_html
 from export.pdf_exporter import export_pdf
@@ -229,8 +231,14 @@ document.addEventListener('fullscreenchange', () => {{
 </script>
 </body></html>"""
 
+# ── 从浏览器 localStorage 加载配置和历史 ──
+init_browser_store()
+if not is_loaded():
+    st.info("正在加载配置...")
+    st.stop()
+
 # ── 侧边栏：模型配置 ──
-_saved_config = load_config()
+_saved_config = get_config()
 with st.sidebar:
     st.header("模型配置")
     base_url = st.text_input("API Base URL",
@@ -243,7 +251,7 @@ with st.sidebar:
 
     if st.button("💾 保存配置"):
         save_config(base_url, api_key, model_name)
-        st.success("配置已保存")
+        st.success("配置已保存到浏览器")
 
     st.divider()
     st.caption("支持所有兼容 OpenAI 格式的 API")
@@ -252,7 +260,7 @@ with st.sidebar:
     # ── 历史记录 ──
     st.divider()
     st.header("历史记录")
-    history_records = load_history()
+    history_records = get_history()
 
     if history_records:
         if st.button("🗑️ 清空全部历史", key="clear_all"):
@@ -627,7 +635,7 @@ if st.session_state.df is not None:
                                 "feedback": pending,
                                 "time": datetime.now().strftime("%Y-%m-%d %H:%M"),
                             }
-                            history = load_history()
+                            history = get_history()
                             for rec in history:
                                 if rec.get("id") == st.session_state.current_history_id:
                                     revisions = rec.get("revisions", [])
