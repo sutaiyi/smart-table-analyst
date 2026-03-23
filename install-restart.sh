@@ -4,7 +4,8 @@ set -e
 
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "${APP_DIR}"
-
+echo "拉拉取最新代码"
+git pull
 echo "📦 更新依赖..."
 source .venv/bin/activate
 pip install -r requirements.txt

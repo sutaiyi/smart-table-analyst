@@ -9,6 +9,8 @@ cd "${APP_DIR}"
 source .venv/bin/activate
 pip install -r requirements.txt
 
+echo "拉拉取最新代码"
+git pull
 
 echo "🔄 重启服务..."
 pkill -f "streamlit run app.py" 2>/dev/null || true
