@@ -50,20 +50,42 @@ body {{
 .table-wrap {{ overflow:auto; max-height:500px; border:1px solid #e2e8f0; border-radius:0 0 8px 8px; }}
 table {{ width:100%; border-collapse:collapse; font-size:13px; line-height:1.5; }}
 thead th {{
-    background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%); color:#fff;
+    background:#f3f4f6; color:#1e293b;
     padding:11px 14px; text-align:left; font-weight:600; font-size:13px;
-    border:1px solid #1e3a5f; white-space:nowrap; position:sticky; top:0; z-index:1;
+    border:1px solid #d1d5db; white-space:nowrap; position:sticky; top:0; z-index:2;
 }}
-tbody td {{ padding:9px 14px; border:1px solid #e2e8f0; vertical-align:middle; color:#334155; }}
-tbody td[rowspan] {{
-    font-weight:600; color:#1e293b; background:#f8fafc;
-    border-left:3px solid #2563eb; vertical-align:middle;
+
+/* 通用 td 样式 */
+tbody td {{
+    padding: 9px 14px;
+    border: 1px solid #d1d5db;
+    vertical-align: middle;
+    color: #334155;
+    background: #fff;
 }}
+
+/* 合并单元格：与普通单元格一致 */
+tbody td.merged, tbody td[rowspan]:not(.merged) {{
+    vertical-align: middle;
+}}
+
+/* 数字列 */
 tbody td.num, thead th.num {{ text-align:right; font-variant-numeric:tabular-nums; }}
-tbody tr.subtotal td {{ font-weight:600; background:#eef2ff; border-top:2px solid #c7d2fe; }}
-tbody tr.total td {{ font-weight:700; background:#e0e7ff; border-top:2px solid #818cf8; font-size:13.5px; }}
+
+/* 小计/合计行 */
+tbody tr.subtotal td {{ font-weight:600; border-top:2px solid #94a3b8; }}
+tbody tr.total td {{ font-weight:700; border-top:2px solid #64748b; font-size:13.5px; }}
+
+/* 搜索高亮 */
 mark {{ background:#fef08a; padding:1px 2px; border-radius:2px; }}
-body.fullscreen {{ position:fixed; inset:0; z-index:9999; background:#fff; overflow:auto; padding:16px; }}
+
+/* 全屏模式 */
+body.fullscreen {{
+    background: #fff; padding: 12px; margin: 0;
+    display: flex; flex-direction: column; height: 100vh;
+}}
+body.fullscreen .toolbar {{ flex-shrink: 0; }}
+body.fullscreen .table-wrap {{ flex: 1; max-height: none !important; border-radius: 0 0 8px 8px; }}
 </style></head>
 <body>
 <div class="toolbar">
@@ -104,7 +126,7 @@ function parseTable() {{
         if(c > maxCols) maxCols = c;
     }});
     const grid = Array.from({{length:numRows}}, () => new Array(maxCols).fill(null));
-    const merges = []; // {{s:{{r,c}}, e:{{r,c}}}}
+    const merges = [];
     trs.forEach((tr, ri) => {{
         let ci = 0;
         tr.querySelectorAll('th,td').forEach(cell => {{
@@ -113,7 +135,6 @@ function parseTable() {{
             const rs = parseInt(cell.getAttribute('rowspan')) || 1;
             const cs = parseInt(cell.getAttribute('colspan')) || 1;
             const txt = cell.textContent.trim();
-            // 所有被合并的位置都填充相同的值
             for(let dr=0; dr<rs && ri+dr<numRows; dr++) {{
                 for(let dc=0; dc<cs && ci+dc<maxCols; dc++) {{
                     grid[ri+dr][ci+dc] = txt;
@@ -128,23 +149,57 @@ function parseTable() {{
     return {{grid, merges, numRows, maxCols}};
 }}
 
+// 通用下载函数：兼容 iframe 沙箱
+function triggerDownload(blob, filename) {{
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    // 在 parent 或当前窗口触发下载
+    try {{
+        (window.parent || window).document.body.appendChild(a);
+        a.click();
+        (window.parent || window).document.body.removeChild(a);
+    }} catch(e) {{
+        // 跨域限制时在当前 frame 下载
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }}
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}}
+
 // 下载 Excel（带合并单元格，使用 SheetJS）
 async function downloadExcel() {{
-    // 动态加载 SheetJS
-    if(!window.XLSX) {{
-        const s = document.createElement('script');
-        s.src = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
-        document.head.appendChild(s);
-        await new Promise(r => s.onload = r);
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '⏳ 加载中...';
+    try {{
+        if(!window.XLSX) {{
+            const s = document.createElement('script');
+            s.src = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+            document.head.appendChild(s);
+            await new Promise((resolve, reject) => {{
+                s.onload = resolve;
+                s.onerror = () => reject(new Error('SheetJS CDN 不可达'));
+                setTimeout(() => reject(new Error('加载超时')), 8000);
+            }});
+        }}
+        const {{grid, merges, numRows, maxCols}} = parseTable();
+        const ws = XLSX.utils.aoa_to_sheet(grid);
+        ws['!merges'] = merges;
+        ws['!cols'] = Array.from({{length:maxCols}}, () => ({{wch:18}}));
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, '数据');
+        XLSX.writeFile(wb, '{safe_title}.xlsx');
+    }} catch(e) {{
+        // CDN 加载失败时降级为 CSV 下载
+        alert('Excel 生成失败（' + e.message + '），将自动下载 CSV 格式。');
+        downloadCSV();
+    }} finally {{
+        btn.disabled = false;
+        btn.textContent = '📥 下载Excel';
     }}
-    const {{grid, merges, numRows, maxCols}} = parseTable();
-    const ws = XLSX.utils.aoa_to_sheet(grid);
-    ws['!merges'] = merges;
-    // 列宽自适应
-    ws['!cols'] = Array.from({{length:maxCols}}, () => ({{wch:18}}));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, '数据');
-    XLSX.writeFile(wb, '{safe_title}.xlsx');
 }}
 
 // 下载 CSV（合并区域所有行填充相同值）
@@ -152,20 +207,25 @@ function downloadCSV() {{
     const {{grid}} = parseTable();
     const csv = grid.map(row => row.map(v => '"'+(v===null?'':v).replace(/"/g,'""')+'"').join(',')).join('\\n');
     const blob = new Blob(['\\uFEFF'+csv], {{type:'text/csv;charset=utf-8;'}});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = '{safe_title}.csv';
-    a.click();
-    URL.revokeObjectURL(a.href);
+    triggerDownload(blob, '{safe_title}.csv');
 }}
 
-// 全屏
-let isFS = false;
+// 全屏（使用浏览器 Fullscreen API）
 function toggleFullscreen() {{
-    isFS = !isFS;
+    const el = document.documentElement;
+    if (!document.fullscreenElement) {{
+        (el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen).call(el);
+    }} else {{
+        (document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen).call(document);
+    }}
+}}
+document.addEventListener('fullscreenchange', () => {{
+    const isFS = !!document.fullscreenElement;
     document.body.classList.toggle('fullscreen', isFS);
     document.getElementById('fsBtn').textContent = isFS ? '↩ 还原' : '🔍 放大';
-}}
+    // 全屏时取消表格高度限制
+    document.getElementById('tableWrap').style.maxHeight = isFS ? 'none' : '500px';
+}});
 </script>
 </body></html>"""
 

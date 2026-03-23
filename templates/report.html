@@ -30,7 +30,9 @@
         {% for table_title, table_html in tables %}
         <div class="table-section">
             <h3>{{ table_title }}</h3>
-            {{ table_html | safe }}
+            <div class="table-scroll">
+                {{ table_html | safe }}
+            </div>
         </div>
         {% endfor %}
 

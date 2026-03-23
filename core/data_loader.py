@@ -113,17 +113,19 @@ def build_preview_html(df: pd.DataFrame, merges: list[tuple]) -> str:
     """
     根据 DataFrame 和合并区域信息，生成带 rowspan/colspan 的 HTML 预览表格。
     merges: [(min_row, min_col, max_row, max_col), ...] 0-based 数据区域坐标。
+
+    改进：
+    - 按合并区域划分行组，同组行共享背景色（交替色按组而非按行）
+    - 合并单元格起始行添加分组顶部边界线
+    - 合并单元格末行添加分组底部边界线
     """
     num_rows, num_cols = df.shape
 
-    # 构建占位矩阵：记录每个格子是否被合并占据
-    # occupied[(r,c)] = True 表示该位置被其他单元格的 rowspan/colspan 覆盖
+    # 构建占位矩阵
     occupied = set()
-    # merge_start[(r,c)] = (rowspan, colspan) 表示该位置是合并起始点
     merge_start = {}
 
     for min_r, min_c, max_r, max_c in merges:
-        # 限制范围不超出数据
         min_r = max(0, min_r)
         min_c = max(0, min_c)
         max_r = min(max_r, num_rows - 1)
@@ -139,6 +141,33 @@ def build_preview_html(df: pd.DataFrame, merges: list[tuple]) -> str:
                     continue
                 occupied.add((min_r + dr, min_c + dc))
 
+    # 计算行组：按第一列的 rowspan 合并区域划分组
+    # 每个组内的行共享同一个背景色
+    row_group = [0] * num_rows  # row_group[ri] = 组编号
+    group_idx = 0
+    ri = 0
+    while ri < num_rows:
+        # 检查该行是否是某个合并区域的起始行（优先看第一列的 rowspan）
+        span = 1
+        for ci in range(num_cols):
+            if (ri, ci) in merge_start:
+                rs, _ = merge_start[(ri, ci)]
+                span = max(span, rs)
+        for k in range(span):
+            if ri + k < num_rows:
+                row_group[ri + k] = group_idx
+        group_idx += 1
+        ri += span
+
+    # 标记分组边界行
+    group_first = set()  # 每组第一行
+    group_last = set()   # 每组最后一行
+    for ri in range(num_rows):
+        if ri == 0 or row_group[ri] != row_group[ri - 1]:
+            group_first.add(ri)
+        if ri == num_rows - 1 or row_group[ri] != row_group[ri + 1]:
+            group_last.add(ri)
+
     # 生成 HTML
     parts = ['<table><thead><tr>']
     for col in df.columns:
@@ -146,19 +175,32 @@ def build_preview_html(df: pd.DataFrame, merges: list[tuple]) -> str:
     parts.append('</tr></thead><tbody>')
 
     for ri in range(num_rows):
-        parts.append('<tr>')
+        classes = []
+        gid = row_group[ri]
+        classes.append(f'grp-{"even" if gid % 2 == 0 else "odd"}')
+        if ri in group_first:
+            classes.append('grp-first')
+        if ri in group_last:
+            classes.append('grp-last')
+        cls_str = f' class="{" ".join(classes)}"' if classes else ''
+        parts.append(f'<tr{cls_str}>')
         for ci in range(num_cols):
             if (ri, ci) in occupied:
-                continue  # 被合并占据，跳过
+                continue
             val = df.iat[ri, ci]
             text = _html_escape(_format_val(val))
             attrs = ''
+            td_cls = []
             if (ri, ci) in merge_start:
                 rs, cs = merge_start[(ri, ci)]
                 if rs > 1:
                     attrs += f' rowspan="{rs}"'
+                    td_cls.append('merged')
                 if cs > 1:
                     attrs += f' colspan="{cs}"'
+                    td_cls.append('merged')
+            if td_cls:
+                attrs += f' class="{" ".join(set(td_cls))}"'
             parts.append(f'<td{attrs}>{text}</td>')
         parts.append('</tr>')
 
@@ -237,6 +279,29 @@ def df_to_html(df: pd.DataFrame, auto_merge: bool = True) -> str:
                         skip_set.add((sr, ci))
                 ri = end
 
+    # 计算行组：按第一列的 rowspan 划分组（分组感知交替色）
+    row_group = [0] * num_rows
+    group_idx = 0
+    ri = 0
+    while ri < num_rows:
+        span = 1
+        for ci in range(num_cols):
+            if (ri, ci) in rowspan_map:
+                span = max(span, rowspan_map[(ri, ci)])
+        for k in range(span):
+            if ri + k < num_rows:
+                row_group[ri + k] = group_idx
+        group_idx += 1
+        ri += span
+
+    group_first = set()
+    group_last = set()
+    for ri in range(num_rows):
+        if ri == 0 or row_group[ri] != row_group[ri - 1]:
+            group_first.add(ri)
+        if ri == num_rows - 1 or row_group[ri] != row_group[ri + 1]:
+            group_last.add(ri)
+
     # 生成 HTML
     parts = ['<table><thead><tr>']
     for col in df.columns:
@@ -244,15 +309,27 @@ def df_to_html(df: pd.DataFrame, auto_merge: bool = True) -> str:
     parts.append('</tr></thead><tbody>')
 
     for ri in range(num_rows):
-        parts.append('<tr>')
+        classes = []
+        gid = row_group[ri]
+        classes.append(f'grp-{"even" if gid % 2 == 0 else "odd"}')
+        if ri in group_first:
+            classes.append('grp-first')
+        if ri in group_last:
+            classes.append('grp-last')
+        cls_str = f' class="{" ".join(classes)}"' if classes else ''
+        parts.append(f'<tr{cls_str}>')
         for ci in range(num_cols):
             if (ri, ci) in skip_set:
                 continue
             val = df.iat[ri, ci]
             text = _html_escape(_format_val(val))
             attrs = ''
+            td_cls = []
             if (ri, ci) in rowspan_map:
                 attrs = f' rowspan="{rowspan_map[(ri, ci)]}"'
+                td_cls.append('merged')
+            if td_cls:
+                attrs += f' class="{" ".join(td_cls)}"'
             parts.append(f'<td{attrs}>{text}</td>')
         parts.append('</tr>')
 

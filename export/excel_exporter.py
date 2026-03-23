@@ -12,14 +12,13 @@ _THIN_BORDER = Border(
     left=Side(style="thin"), right=Side(style="thin"),
     top=Side(style="thin"), bottom=Side(style="thin"),
 )
-_HEADER_FILL = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
-_HEADER_FONT = Font(bold=True, color="FFFFFF", size=11)
-_MERGE_FILL = PatternFill(start_color="F8FAFC", end_color="F8FAFC", fill_type="solid")
-_SUBTOTAL_FILL = PatternFill(start_color="EEF2FF", end_color="EEF2FF", fill_type="solid")
-_TOTAL_FILL = PatternFill(start_color="E0E7FF", end_color="E0E7FF", fill_type="solid")
+_HEADER_FILL = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")
+_HEADER_FONT = Font(bold=True, color="1E293B", size=11)
+_SUBTOTAL_FILL = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")
+_TOTAL_FILL = PatternFill(start_color="E5E7EB", end_color="E5E7EB", fill_type="solid")
 _BOLD_FONT = Font(bold=True, size=11)
 _NORMAL_FONT = Font(size=11)
-_TITLE_FONT = Font(bold=True, size=14, color="1F4E79")
+_TITLE_FONT = Font(bold=True, size=14, color="1E293B")
 
 
 # ── HTML 表格解析器 ──
@@ -213,9 +212,6 @@ def _write_styled_sheet(ws, title: str, html: str):
                 ws_cell.font = _BOLD_FONT
             elif "subtotal" in row_cls:
                 ws_cell.fill = _SUBTOTAL_FILL
-                ws_cell.font = _BOLD_FONT
-            elif rs > 1:
-                ws_cell.fill = _MERGE_FILL
                 ws_cell.font = _BOLD_FONT
             else:
                 ws_cell.font = _NORMAL_FONT
