@@ -136,12 +136,22 @@ setup_venv() {
     cd "${APP_DIR}"
 
     if [ ! -d "${VENV_DIR}" ]; then
-        sudo -u "${USER}" ${PYTHON_BIN} -m venv "${VENV_DIR}"
+        ${PYTHON_BIN} -m venv "${VENV_DIR}"
     fi
 
+    log_info "升级 pip..."
+    "${VENV_DIR}/bin/pip" install --upgrade pip -q
+
     log_info "安装 Python 依赖..."
-    sudo -u "${USER}" "${VENV_DIR}/bin/pip" install --upgrade pip -q
-    sudo -u "${USER}" "${VENV_DIR}/bin/pip" install -r requirements.txt -q
+    "${VENV_DIR}/bin/pip" install -r requirements.txt
+
+    # Playwright 需要额外安装浏览器（PDF导出用）
+    if grep -q "playwright" requirements.txt; then
+        log_info "安装 Playwright Chromium 浏览器..."
+        "${VENV_DIR}/bin/playwright" install chromium
+        "${VENV_DIR}/bin/playwright" install-deps chromium 2>/dev/null || true
+    fi
+
     log_info "依赖安装完成"
 }
 
@@ -326,6 +336,10 @@ update_deploy() {
 case "${1:-}" in
     update)
         update_deploy
+        ;;
+    deps)
+        log_info "仅更新依赖..."
+        setup_venv
         ;;
     restart)
         check_root
