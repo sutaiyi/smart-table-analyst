@@ -260,7 +260,11 @@ def export_excel(
         ws.column_dimensions["A"].width = 80
 
     for title, df in result_tables.items():
-        sheet_name = title[:31]
+        # Excel sheet名不能包含 \ / * ? : [ ] 且最长31字符
+        sheet_name = title
+        for ch in ['\\', '/', '*', '?', ':', '[', ']']:
+            sheet_name = sheet_name.replace(ch, '_')
+        sheet_name = sheet_name[:31]
         ws = wb.create_sheet(sheet_name)
 
         if title in styled:

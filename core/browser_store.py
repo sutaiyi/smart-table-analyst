@@ -34,6 +34,10 @@ def init_browser_store():
     if "browser_history" not in st.session_state:
         st.session_state["browser_history"] = []
 
+    # 记录尝试次数，最多等3轮 rerun
+    attempt = st.session_state.get("_browser_load_attempt", 0)
+    st.session_state["_browser_load_attempt"] = attempt + 1
+
     # 尝试从 localStorage 读取
     try:
         config_raw = streamlit_js_eval(
@@ -45,26 +49,33 @@ def init_browser_store():
             key="_load_history",
         )
     except Exception:
-        # JS eval 失败，用默认值继续
         st.session_state["_browser_loaded"] = True
         return
 
-    # 第一次渲染返回 None（JS 尚未执行），标记为已加载，用默认值先跑
-    # 如果后续 rerun 拿到了真实值会自动更新
+    got_data = False
+
     if config_raw is not None and isinstance(config_raw, str):
         try:
             st.session_state["browser_config"] = json.loads(config_raw)
+            got_data = True
         except json.JSONDecodeError:
             pass
+    elif config_raw == 0 or config_raw == "":
+        # localStorage 中没有该 key，返回 null 转为 0 或空字符串
+        got_data = True
 
     if history_raw is not None and isinstance(history_raw, str):
         try:
             st.session_state["browser_history"] = json.loads(history_raw)
+            got_data = True
         except json.JSONDecodeError:
             pass
+    elif history_raw == 0 or history_raw == "":
+        got_data = True
 
-    # 无论是否拿到值，都标记为已加载，不阻塞页面
-    st.session_state["_browser_loaded"] = True
+    # 拿到了数据 或 已尝试超过3次，标记为已加载
+    if got_data or attempt >= 3:
+        st.session_state["_browser_loaded"] = True
 
 
 def is_loaded() -> bool:
