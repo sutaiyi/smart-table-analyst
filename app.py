@@ -343,9 +343,16 @@ if st.session_state.df is not None:
         key="user_request_input",
     )
 
-    # ── 步骤3: 生成分析方案 / 跳过直接分析 ──
-    btn_refine = st.button("🔍 生成分析方案", type="primary", disabled=not user_request)
-    btn_skip = False  # 暂时隐藏
+    # ── 步骤3: 生成分析方案 / 直接分析 ──
+    st.markdown(
+        '<div style="display:flex;gap:20px;">',
+        unsafe_allow_html=True,
+    )
+    col_btn1, col_btn2, col_spacer = st.columns([2, 2, 8])
+    with col_btn1:
+        btn_refine = st.button("🔍 生成分析方案", type="primary", disabled=not user_request, use_container_width=True)
+    with col_btn2:
+        btn_direct = st.button("⚡ 直接出结果", disabled=not user_request, use_container_width=True)
 
     def _save_history_record(user_req, refined=""):
         from datetime import datetime
@@ -376,31 +383,26 @@ if st.session_state.df is not None:
                 except Exception as e:
                     st.error(f"AI调用失败: {e}")
 
-    if btn_skip:
+    if btn_direct:
         if not api_key:
             st.error("请先在侧边栏配置 API Key")
         else:
             progress = st.empty()
             try:
-                # 第1步：生成分析方案（和"生成分析方案"按钮一样）
-                progress.info("⏳ 第1步：AI正在理解你的需求...")
+                # 直接把用户输入当作分析需求生成代码（适合粘贴已有的分析方案）
+                progress.info("⏳ AI正在生成分析代码...")
                 client = LLMClient(base_url, api_key, model_name)
-                messages = build_refine_messages(user_request, st.session_state.data_summary)
-                refined = client.chat(messages, temperature=0.7)
-                st.session_state.refined_prompt = refined
-
-                # 第2步：用方案生成代码并执行（和"确认并执行分析"按钮一样）
-                progress.info("⏳ 第2步：AI正在生成分析代码...")
-                messages = build_analyze_messages(refined, st.session_state.data_summary)
+                messages = build_analyze_messages(user_request, st.session_state.data_summary)
                 response = client.chat(messages, temperature=0.2)
                 code = extract_code(response)
 
-                progress.info("⏳ 第3步：正在执行分析...")
+                progress.info("⏳ 正在执行分析...")
                 result = execute_analysis(code, st.session_state.df, llm_client=client)
                 st.session_state.analysis_result = result
                 st.session_state.last_code = code
                 st.session_state.revision_history = []
-                _save_history_record(user_request, refined)
+                st.session_state.refined_prompt = None
+                _save_history_record(user_request)
                 progress.success("分析完成！")
             except Exception as e:
                 progress.empty()
