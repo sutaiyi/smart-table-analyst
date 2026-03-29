@@ -22,6 +22,23 @@ st.set_page_config(
     layout="wide",
 )
 
+# 注入 DocQA Chat Widget 到主页面 body 末尾
+components.html("""
+<script>
+(function() {
+    var parent = window.parent.document;
+    if (!parent.getElementById('docqa-widget-script')) {
+        var s = parent.createElement('script');
+        s.id = 'docqa-widget-script';
+        s.src = 'https://widget.docqa.xyz/widget/chat-widget.js';
+        s.setAttribute('data-base-url', 'https://excelai.eyantang.cc');
+        s.setAttribute('data-theme', 'dark');
+        parent.body.appendChild(s);
+    }
+})();
+</script>
+""", height=0)
+
 
 def _build_styled_table_html(table_html: str, title: str = "") -> str:
     """构建带工具栏（搜索、下载CSV、全屏）的合并单元格表格 HTML"""
