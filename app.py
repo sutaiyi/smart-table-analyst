@@ -17,10 +17,36 @@ from export.html_exporter import export_html
 from export.pdf_exporter import export_pdf
 
 st.set_page_config(
-    page_title="Smart Table Analyst",
+    page_title="智能表格分析",
     page_icon="📊",
     layout="wide",
 )
+
+# 隐藏 Streamlit 骨架屏 & 零高度组件占位
+st.markdown("""
+<style>
+    [data-testid="stSkeleton"] { display: none !important; }
+    .stDeployButton { display: none; }
+    /* 隐藏 streamlit_js_eval / components.html(height=0) 产生的空容器 */
+    [class*="st-key-_load_config"],
+    [class*="st-key-_load_history"] {
+        position: fixed !important;
+        top: -9999px !important;
+        height: 0 !important;
+        overflow: hidden !important;
+    }
+    /* 隐藏 height=0 的 iframe 容器 */
+    iframe[height="0"] {
+        display: none !important;
+    }
+    .element-container:has(iframe[height="0"]) {
+        position: fixed !important;
+        top: -9999px !important;
+        height: 0 !important;
+        overflow: hidden !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # 注入 DocQA Chat Widget 到主页面 body 末尾
 components.html("""
@@ -44,7 +70,7 @@ def _build_styled_table_html(table_html: str, title: str = "") -> str:
     """构建带工具栏（搜索、下载CSV、全屏）的合并单元格表格 HTML"""
     safe_title = title.replace('"', '&quot;').replace("'", "\\'")
     return f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8"><style>
+<html lang="zh"><head><meta charset="utf-8"><style>
 * {{ margin:0; padding:0; box-sizing:border-box; }}
 body {{
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -255,9 +281,9 @@ init_browser_store()
 _saved_config = get_config()
 with st.sidebar:
     st.header("模型配置")
-    base_url = st.text_input("API Base URL",
+    base_url = st.text_input("API 接口地址",
                               value=_saved_config.get("base_url", DEFAULT_BASE_URL))
-    api_key = st.text_input("API Key",
+    api_key = st.text_input("API 密钥",
                              value=_saved_config.get("api_key", DEFAULT_API_KEY),
                              type="password")
     model_name = st.text_input("模型名称",
@@ -308,7 +334,7 @@ with st.sidebar:
         st.caption("暂无历史记录")
 
 # ── 主界面 ──
-st.title("📊 Smart Table Analyst")
+st.title("📊 智能表格分析")
 st.markdown("上传表格 → 描述需求 → AI分析 → 导出报告")
 
 # 初始化 session state
