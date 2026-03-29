@@ -27,6 +27,7 @@ pip install -r requirements.txt
 ```
 
 > **macOS SSL 证书问题**：如果安装时报 `SSL: CERTIFICATE_VERIFY_FAILED`，先运行：
+>
 > ```bash
 > # 方法A：安装 Python 证书（推荐，路径根据你的 Python 版本调整）
 > /Applications/Python\ 3.10/Install\ Certificates.command
@@ -36,8 +37,9 @@ pip install -r requirements.txt
 > ```
 
 > **PDF 导出**需要额外安装 WeasyPrint 系统依赖：
+>
 > - macOS: `brew install pango`
-> - Ubuntu: `apt-get install libpango-1.0-0 libpangocairo-1.0-0`
+> - Ubuntu: `sudo dnf install libpango-1.0-0 libpangocairo-1.0-0`
 
 ### 3. 配置
 
@@ -48,6 +50,7 @@ cp .env.example .env
 ```
 
 编辑 `.env`：
+
 ```
 LLM_BASE_URL=https://api.openai.com/v1
 LLM_API_KEY=your-api-key
@@ -77,12 +80,12 @@ streamlit run app.py
 
 通过 `base_url` 适配不同 AI 服务：
 
-| 服务 | Base URL |
-|------|----------|
-| OpenAI | `https://api.openai.com/v1` |
-| DeepSeek | `https://api.deepseek.com/v1` |
-| 通义千问 | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
-| Ollama (本地) | `http://localhost:11434/v1` |
+| 服务          | Base URL                                            |
+| ------------- | --------------------------------------------------- |
+| OpenAI        | `https://api.openai.com/v1`                         |
+| DeepSeek      | `https://api.deepseek.com/v1`                       |
+| 通义千问      | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| Ollama (本地) | `http://localhost:11434/v1`                         |
 
 ## 服务器部署（Alibaba Cloud Linux 3 / CentOS 8）
 
@@ -102,14 +105,14 @@ sudo ./deploy.sh restart
 
 常用命令：
 
-| 命令 | 说明 |
-|------|------|
-| `sudo ./deploy.sh` | 首次完整部署 |
-| `sudo ./deploy.sh update` | 拉取最新代码并重启 |
-| `sudo ./deploy.sh restart` | 重启服务 |
-| `sudo ./deploy.sh stop` | 停止服务 |
-| `sudo ./deploy.sh status` | 查看服务状态 |
-| `sudo ./deploy.sh logs` | 实时查看日志 |
+| 命令                       | 说明               |
+| -------------------------- | ------------------ |
+| `sudo ./deploy.sh`         | 首次完整部署       |
+| `sudo ./deploy.sh update`  | 拉取最新代码并重启 |
+| `sudo ./deploy.sh restart` | 重启服务           |
+| `sudo ./deploy.sh stop`    | 停止服务           |
+| `sudo ./deploy.sh status`  | 查看服务状态       |
+| `sudo ./deploy.sh logs`    | 实时查看日志       |
 
 > 部署后记得在阿里云安全组中放行 TCP 8501 端口
 

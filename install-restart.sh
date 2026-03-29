@@ -15,9 +15,21 @@ if grep -q "playwright" requirements.txt; then
     if python -c "from playwright.sync_api import sync_playwright; sync_playwright().start().chromium.executable_path" 2>/dev/null; then
         echo "✅ Playwright Chromium 已安装，跳过"
     else
+        echo "🌐 安装 Playwright 系统依赖..."
+        # RHEL/CentOS/Alibaba Cloud Linux 用 yum 安装
+        if command -v yum &>/dev/null; then
+            sudo yum install -y \
+                atk cups-libs gtk3 libXcomposite libXdamage libXrandr \
+                mesa-libgbm pango alsa-lib nss at-spi2-atk libdrm \
+                libxkbcommon xorg-x11-fonts-misc xorg-x11-fonts-75dpi 2>/dev/null || true
+        # Debian/Ubuntu 用 apt
+        elif command -v apt-get &>/dev/null; then
+            sudo apt-get install -y libnss3 libatk-bridge2.0-0 libdrm2 \
+                libxkbcommon0 libgbm1 libpango-1.0-0 libcairo2 \
+                libasound2 libcups2 libgtk-3-0 2>/dev/null || true
+        fi
         echo "🌐 安装 Playwright Chromium..."
         playwright install chromium
-        playwright install-deps chromium 2>/dev/null || true
     fi
 fi
 
