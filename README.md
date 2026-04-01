@@ -18,6 +18,7 @@
 cd /path/to/smart-table-analyst
 python3 -m venv .venv
 source .venv/bin/activate
+streamlit run app.py
 ```
 
 ### 2. 安装依赖

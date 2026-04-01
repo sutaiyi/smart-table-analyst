@@ -6,8 +6,48 @@ from openpyxl import load_workbook
 
 
 def detect_encoding(file_bytes: bytes) -> str:
+    """
+    自动检测文件编码，增强中文编码兼容性。
+    策略：chardet 检测 → 尝试解码验证 → 中文常见编码回退。
+    """
     result = chardet.detect(file_bytes)
-    return result.get("encoding", "utf-8") or "utf-8"
+    detected = result.get("encoding") or "utf-8"
+    confidence = result.get("confidence", 0)
+
+    # chardet 常把 GBK/GB2312 识别为 ISO-8859-1 或 Windows-1252 等，
+    # 或者低置信度时结果不可靠，需要回退尝试
+    # 中文编码优先级：utf-8 > gb18030(兼容gbk/gb2312) > big5
+    candidates = []
+
+    # 如果 chardet 置信度高且不是明显误判，优先使用
+    if confidence >= 0.8:
+        candidates.append(detected)
+
+    # 总是把常见编码加入候选
+    candidates.extend(["utf-8", "gb18030", "gbk", "big5", "utf-8-sig"])
+
+    # 低置信度时也把 chardet 结果加入候选（靠后）
+    if confidence < 0.8:
+        candidates.append(detected)
+
+    # 去重保序
+    seen = set()
+    unique_candidates = []
+    for enc in candidates:
+        enc_lower = enc.lower().replace("-", "").replace("_", "")
+        if enc_lower not in seen:
+            seen.add(enc_lower)
+            unique_candidates.append(enc)
+
+    for enc in unique_candidates:
+        try:
+            file_bytes.decode(enc)
+            return enc
+        except (UnicodeDecodeError, LookupError):
+            continue
+
+    # 所有候选都失败，用 utf-8 + errors=replace 兜底
+    return "utf-8"
 
 
 # 常见的空值标记（MySQL \N、NA、NULL 等）
@@ -95,7 +135,11 @@ def load_table(uploaded_file) -> tuple[pd.DataFrame, list[tuple]]:
 
     if name.endswith(".csv"):
         encoding = detect_encoding(raw)
-        df = pd.read_csv(io.BytesIO(raw), encoding=encoding, na_values=_NA_VALUES, keep_default_na=True)
+        df = pd.read_csv(
+            io.BytesIO(raw), encoding=encoding,
+            na_values=_NA_VALUES, keep_default_na=True,
+            encoding_errors="replace",
+        )
     elif name.endswith((".xlsx", ".xls")):
         if name.endswith(".xls"):
             df = pd.read_excel(io.BytesIO(raw), na_values=_NA_VALUES, keep_default_na=True)
