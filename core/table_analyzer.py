@@ -39,13 +39,43 @@ def _sanitize_code(code: str) -> str:
 
 
 def extract_code(response: str) -> str:
+    # 1. 尝试匹配 ```python ... ``` 代码块
     pattern = r"```python\s*\n(.*?)```"
     match = re.search(pattern, response, re.DOTALL)
     if match:
         return _sanitize_code(match.group(1).strip())
-    # 如果没有代码块标记，尝试整个内容作为代码
-    if "import " in response or "result_tables" in response:
-        return _sanitize_code(response.strip())
+
+    # 2. 尝试匹配无语言标记的 ``` ... ``` 代码块
+    pattern_plain = r"```\s*\n(.*?)```"
+    match_plain = re.search(pattern_plain, response, re.DOTALL)
+    if match_plain:
+        code = match_plain.group(1).strip()
+        if "result_tables" in code or "import " in code or "df" in code:
+            return _sanitize_code(code)
+
+    # 3. 如果没有代码块标记，尝试整个内容作为代码
+    if "import " in response or "result_tables" in response or "df[" in response or "df." in response:
+        # 去掉可能的前后说明文字，只保留代码行
+        lines = response.strip().split("\n")
+        code_lines = []
+        in_code = False
+        for line in lines:
+            stripped = line.strip()
+            # 跳过明显的说明性文字（不以Python语法开头的中文段落）
+            if not in_code and stripped and not any(
+                stripped.startswith(k) for k in (
+                    "import ", "from ", "df", "result_tables", "charts",
+                    "summary", "#", "pd.", "np.", "for ", "if ", "def ",
+                    "class ", "with ", "try:", "except", "else:", "elif ",
+                    "while ", "return ", "print(", "    ", "\t",
+                )
+            ) and not re.match(r"^[a-zA-Z_]\w*\s*[=\[\.(]", stripped):
+                continue
+            in_code = True
+            code_lines.append(line)
+        if code_lines:
+            return _sanitize_code("\n".join(code_lines))
+
     raise ValueError("AI返回的内容中未找到Python代码块")
 
 
