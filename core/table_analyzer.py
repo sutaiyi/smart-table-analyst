@@ -20,14 +20,32 @@ def _try_import(module_name: str):
         return None
 
 
+def _sanitize_code(code: str) -> str:
+    """将AI生成代码中的全角标点替换为半角，避免SyntaxError。"""
+    replacements = {
+        "\uff0c": ",",   # ，→ ,
+        "\uff08": "(",   # （→ (
+        "\uff09": ")",   # ）→ )
+        "\uff1a": ":",   # ：→ :
+        "\uff1b": ";",   # ；→ ;
+        "\u201c": '"',   # " → "
+        "\u201d": '"',   # " → "
+        "\u2018": "'",   # ' → '
+        "\u2019": "'",   # ' → '
+    }
+    for full, half in replacements.items():
+        code = code.replace(full, half)
+    return code
+
+
 def extract_code(response: str) -> str:
     pattern = r"```python\s*\n(.*?)```"
     match = re.search(pattern, response, re.DOTALL)
     if match:
-        return match.group(1).strip()
+        return _sanitize_code(match.group(1).strip())
     # 如果没有代码块标记，尝试整个内容作为代码
     if "import " in response or "result_tables" in response:
-        return response.strip()
+        return _sanitize_code(response.strip())
     raise ValueError("AI返回的内容中未找到Python代码块")
 
 
