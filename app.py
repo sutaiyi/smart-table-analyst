@@ -56,7 +56,7 @@ components.html("""
     if (!parent.getElementById('docqa-widget-script')) {
         var s = parent.createElement('script');
         s.id = 'docqa-widget-script';
-        s.src = 'https://widget.docqa.xyz/widget/chat-widget.js';
+        s.src = 'https://widget.webnav.ai/widget/chat-widget.js';
         s.setAttribute('data-base-url', 'https://excelai.eyantang.cc');
         s.setAttribute('data-theme', 'dark');
         parent.body.appendChild(s);
